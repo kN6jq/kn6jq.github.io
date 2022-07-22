@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <id>https://kn6jq.github.io</id>
+    <title>Gridea</title>
+    <updated>2022-07-22T02:49:33.377Z</updated>
+    <generator>https://github.com/jpmonette/feed</generator>
+    <link rel="alternate" href="https://kn6jq.github.io"/>
+    <link rel="self" href="https://kn6jq.github.io/atom.xml"/>
+    <subtitle>温故而知新</subtitle>
+    <logo>https://kn6jq.github.io/images/avatar.png</logo>
+    <icon>https://kn6jq.github.io/favicon.ico</icon>
+    <rights>All rights reserved 2022, Gridea</rights>
+    <entry>
+        <title type="html"><![CDATA[Nginx在实战攻防中的配置]]></title>
+        <id>https://kn6jq.github.io/post/nginx-zai-shi-zhan-gong-fang-zhong-de-pei-zhi/</id>
+        <link href="https://kn6jq.github.io/post/nginx-zai-shi-zhan-gong-fang-zhong-de-pei-zhi/">
+        </link>
+        <updated>2022-07-22T02:24:26.000Z</updated>
+        <content type="html"><![CDATA[<p>看到了几个有意思的nginx配置，这里汇总一下</p>
+<h1 id="反向代理域名解析">反向代理+域名解析</h1>
+<ol>
+<li>需求<br>
+想隐藏自己的web服务或者抓工具的poc</li>
+<li>nginx配置</li>
+</ol>
+<p>这里是server块的代码，如windows下在vhosts目录创建一个conf文件，在nginx.conf中引进来<code>include vhosts/*.conf;</code><br>
+配置代码如下</p>
+<pre><code>server {
+    listen 80 default_server;
+    server_name _;
+    return 400;
+}
+server {
+        keepalive_requests 120;
+        listen       80;
+        server_name  test.com;
+        #charset koi8-r;
+        #access_log  logs/host.access.log  main;
+        location / {
+            proxy_pass http://127.0.0.1:8081;
+            proxy_redirect off;
+            proxy_set_header Host $host:$server_port;
+            proxy_set_header X-Real-IP $remote_addr;
+            root   html;
+            index  index.html index.htm;
+        }
+        access_log logs/test.com.log;
+}
+</code></pre>
+<ol>
+<li>说明</li>
+</ol>
+<p>用户使用test.com去访问web服务,nginx反向代理到127.0.0.1的8081端口，这里的也可以用防火墙禁掉外部访问8081端口<br>
+这个配置是不能通过ip访问web服务的，必须是加上test.com<br>
+使用ip访问<br>
+<img src="https://kn6jq.github.io/post-images/1658456934356.png" alt="" loading="lazy"><br>
+使用host访问<br>
+<img src="https://kn6jq.github.io/post-images/1658457023963.png" alt="" loading="lazy"><br>
+这里可以从本机的host绑定一下</p>
+<ol start="4">
+<li>举例<br>
+这里可以搭配xray搭建一个reverse服务，抓公网的扫描流量，或者去抓扫描器的poc</li>
+</ol>
+<h1 id="nginx记录post日志">nginx记录post日志</h1>
+<p>挖坑，网上找的我自己在本机都不成功，先放着</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[工具Tips]]></title>
+        <id>https://kn6jq.github.io/post/gong-ju-tips/</id>
+        <link href="https://kn6jq.github.io/post/gong-ju-tips/">
+        </link>
+        <updated>2022-07-19T06:17:56.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="域名收集">域名收集</h1>
+<ol>
+<li>rapiddns</li>
+</ol>
+<pre><code>rapiddns(){
+curl -s &quot;https://rapiddns.io/subdomain/$1?full=1&quot; \
+ | grep -oP '(?&lt;=td&gt;).*(?=&lt;/td)' \
+ | grep &quot;$1&quot; \
+ | sort -u
+}
+</code></pre>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[记一次mysql注入]]></title>
+        <id>https://kn6jq.github.io/post/mysql-zhu-ru-shi-bie/</id>
+        <link href="https://kn6jq.github.io/post/mysql-zhu-ru-shi-bie/">
+        </link>
+        <updated>2022-07-19T01:44:49.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="简介">简介</h1>
+<p>还是实际测试中遇到了，最终只能判别注入，没法绕过waf，而waf竟然是我们自己厂家的设备<br>
+这个waf还有点奇怪，他不是阻断你的访问，而是返回404，刚开始测得时候，我以为我的sql语句把服务器删掉了，但是仔细想想，不可能啊，就算是再怎么注入，页面不能是404，只能是没数据，就很鸡肋</p>
+<h1 id="测试过程">测试过程</h1>
+<p>首先发现请求URL<br>
+<img src="https://kn6jq.github.io/post-images/1658195379147.png" alt="" loading="lazy"><br>
+一般来说，这种看起来就很稳的sql注入了，<br>
+简单的使用单引号进行测试<br>
+单引号报错<br>
+<img src="https://kn6jq.github.io/post-images/1658195418078.png" alt="" loading="lazy"><br>
+测试语句<code>'||'</code>链接起来，返回正常<br>
+<img src="https://kn6jq.github.io/post-images/1658195510212.png" alt="" loading="lazy"><br>
+接着就往里面添加数据，判断逻辑<br>
+<img src="https://kn6jq.github.io/post-images/1658195543851.png" alt="" loading="lazy"><br>
+<img src="https://kn6jq.github.io/post-images/1658195556037.png" alt="" loading="lazy"></p>
+<h1 id="完结">完结</h1>
+<p>最终只能判断出sql，没绕过去waf，waf是判断了1=1 这里的等于号 中间尝试替换了like，regexp之类的都没成功。。所以就不了了之</p>
+]]></content>
+    </entry>
+    <entry>
+        <title type="html"><![CDATA[模糊测试域名]]></title>
+        <id>https://kn6jq.github.io/post/mo-hu-ce-shi-yu-ming/</id>
+        <link href="https://kn6jq.github.io/post/mo-hu-ce-shi-yu-ming/">
+        </link>
+        <updated>2022-07-10T05:20:00.000Z</updated>
+        <content type="html"><![CDATA[<h1 id="简介">简介</h1>
+<p>在一般渗透测试中，会遇到三级域名类似<code>xxx.dev.baidu.com</code>，或者诸如<code>dev-test.baidu.com</code>这类，这里来分享一下我写的一个简单的脚本</p>
+<h1 id="模糊生成工具">模糊生成工具</h1>
+<p><strong>github地址</strong><br>
+<code>https://github.com/kN6jq/Generatedomain</code><br>
+<img src="https://kn6jq.github.io/post-images/1657430659332.png" alt="" loading="lazy"></p>
+<p>使用方法很简单,只需要域名字典，带FUZZ参数的域名</p>
+<pre><code>./generatedomain -f subdomain.txt -d FUZZ.dueros.baidu.com
+</code></pre>
+<h1 id="使用案例">使用案例</h1>
+<ol>
+<li>在crt.sh上获取域名</li>
+</ol>
+<pre><code>https://crt.sh/?q=baidu.com
+</code></pre>
+<ol start="2">
+<li>
+<p>用xls对域名数据进行去重处理<br>
+<img src="https://kn6jq.github.io/post-images/1657430859550.png" alt="" loading="lazy"></p>
+</li>
+<li>
+<p>生成域名<br>
+这里用<code>*.dueros.baidu.com</code>进行测试</p>
+</li>
+</ol>
+<pre><code>./generatedomain -f subdomain.txt -d FUZZ.dueros.baidu.com
+</code></pre>
+<figure data-type="image" tabindex="1"><img src="https://kn6jq.github.io/post-images/1657430975903.png" alt="" loading="lazy"></figure>
+<ol start="4">
+<li>使用ksubdomain进行验证</li>
+</ol>
+<pre><code>ksubdomain verify -f FUZZ.dueros.baidu.com.txt
+</code></pre>
+<figure data-type="image" tabindex="2"><img src="https://kn6jq.github.io/post-images/1657431188350.png" alt="" loading="lazy"></figure>
+]]></content>
+    </entry>
+</feed>

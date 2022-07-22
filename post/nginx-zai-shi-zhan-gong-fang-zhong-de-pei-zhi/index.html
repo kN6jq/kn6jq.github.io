@@ -1,0 +1,222 @@
+<html>
+  <head>
+    <meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Nginx在实战攻防中的配置 | Gridea</title>
+<link rel="shortcut icon" href="https://kn6jq.github.io/favicon.ico?v=1658458172058">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@2.3.0/fonts/remixicon.css" rel="stylesheet">
+<link rel="stylesheet" href="https://kn6jq.github.io/styles/main.css">
+<link rel="alternate" type="application/atom+xml" title="Nginx在实战攻防中的配置 | Gridea - Atom Feed" href="https://kn6jq.github.io/atom.xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Droid+Serif:400,700">
+
+
+
+    <meta name="description" content="看到了几个有意思的nginx配置，这里汇总一下
+反向代理+域名解析
+
+需求
+想隐藏自己的web服务或者抓工具的poc
+nginx配置
+
+这里是server块的代码，如windows下在vhosts目录创建一个conf文件，在nginx.co..." />
+    <meta name="keywords" content="" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.10.0/katex.min.css">
+    <script src="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.5.1/build/highlight.min.js"></script>
+  </head>
+  <body>
+    <div class="main">
+      <div class="main-content">
+        <div class="site-header">
+  <a href="https://kn6jq.github.io">
+  <img class="avatar" src="https://kn6jq.github.io/images/avatar.png?v=1658458172058" alt="">
+  </a>
+  <h1 class="site-title">
+    Gridea
+  </h1>
+  <p class="site-description">
+    温故而知新
+  </p>
+  <div class="menu-container">
+    
+      
+        <a href="/" class="menu">
+          首页
+        </a>
+      
+    
+      
+        <a href="/archives" class="menu">
+          归档
+        </a>
+      
+    
+      
+        <a href="/tags" class="menu">
+          标签
+        </a>
+      
+    
+      
+        <a href="/post/about" class="menu">
+          关于
+        </a>
+      
+    
+  </div>
+  <div class="social-container">
+    
+      
+    
+      
+    
+      
+    
+      
+    
+      
+    
+  </div>
+</div>
+
+        <div class="post-detail">
+          <article class="post">
+            <h2 class="post-title">
+              Nginx在实战攻防中的配置
+            </h2>
+            <div class="post-info">
+              <span>
+                2022-07-22
+              </span>
+              <span>
+                2 min read
+              </span>
+              
+            </div>
+            
+            <div class="post-content-wrapper">
+              <div class="post-content" v-pre>
+                <p>看到了几个有意思的nginx配置，这里汇总一下</p>
+<h1 id="反向代理域名解析">反向代理+域名解析</h1>
+<ol>
+<li>需求<br>
+想隐藏自己的web服务或者抓工具的poc</li>
+<li>nginx配置</li>
+</ol>
+<p>这里是server块的代码，如windows下在vhosts目录创建一个conf文件，在nginx.conf中引进来<code>include vhosts/*.conf;</code><br>
+配置代码如下</p>
+<pre><code>server {
+    listen 80 default_server;
+    server_name _;
+    return 400;
+}
+server {
+        keepalive_requests 120;
+        listen       80;
+        server_name  test.com;
+        #charset koi8-r;
+        #access_log  logs/host.access.log  main;
+        location / {
+            proxy_pass http://127.0.0.1:8081;
+            proxy_redirect off;
+            proxy_set_header Host $host:$server_port;
+            proxy_set_header X-Real-IP $remote_addr;
+            root   html;
+            index  index.html index.htm;
+        }
+        access_log logs/test.com.log;
+}
+</code></pre>
+<ol>
+<li>说明</li>
+</ol>
+<p>用户使用test.com去访问web服务,nginx反向代理到127.0.0.1的8081端口，这里的也可以用防火墙禁掉外部访问8081端口<br>
+这个配置是不能通过ip访问web服务的，必须是加上test.com<br>
+使用ip访问<br>
+<img src="https://kn6jq.github.io/post-images/1658456934356.png" alt="" loading="lazy"><br>
+使用host访问<br>
+<img src="https://kn6jq.github.io/post-images/1658457023963.png" alt="" loading="lazy"><br>
+这里可以从本机的host绑定一下</p>
+<ol start="4">
+<li>举例<br>
+这里可以搭配xray搭建一个reverse服务，抓公网的扫描流量，或者去抓扫描器的poc</li>
+</ol>
+<h1 id="nginx记录post日志">nginx记录post日志</h1>
+<p>挖坑，网上找的我自己在本机都不成功，先放着</p>
+
+              </div>
+              <div class="toc-container">
+                <ul class="markdownIt-TOC">
+<li><a href="#%E5%8F%8D%E5%90%91%E4%BB%A3%E7%90%86%E5%9F%9F%E5%90%8D%E8%A7%A3%E6%9E%90">反向代理+域名解析</a></li>
+<li><a href="#nginx%E8%AE%B0%E5%BD%95post%E6%97%A5%E5%BF%97">nginx记录post日志</a></li>
+</ul>
+
+              </div>
+            </div>
+          </article>
+        </div>
+
+        
+          <div class="next-post">
+            <div class="next">下一篇</div>
+            <a href="https://kn6jq.github.io/post/gong-ju-tips/">
+              <h3 class="post-title">
+                工具Tips
+              </h3>
+            </a>
+          </div>
+        
+
+        
+
+        <div class="site-footer">
+  Powered by <a href="https://github.com/getgridea/gridea" target="_blank">Gridea</a>
+  <a class="rss" href="https://kn6jq.github.io/atom.xml" target="_blank">
+    <i class="ri-rss-line"></i> RSS
+  </a>
+</div>
+
+      </div>
+    </div>
+
+    <script>
+      hljs.initHighlightingOnLoad()
+
+      let mainNavLinks = document.querySelectorAll(".markdownIt-TOC a");
+
+      // This should probably be throttled.
+      // Especially because it triggers during smooth scrolling.
+      // https://lodash.com/docs/4.17.10#throttle
+      // You could do like...
+      // window.addEventListener("scroll", () => {
+      //    _.throttle(doThatStuff, 100);
+      // });
+      // Only not doing it here to keep this Pen dependency-free.
+
+      window.addEventListener("scroll", event => {
+        let fromTop = window.scrollY;
+
+        mainNavLinks.forEach((link, index) => {
+          let section = document.getElementById(decodeURI(link.hash).substring(1));
+          let nextSection = null
+          if (mainNavLinks[index + 1]) {
+            nextSection = document.getElementById(decodeURI(mainNavLinks[index + 1].hash).substring(1));
+          }
+          if (section.offsetTop <= fromTop) {
+            if (nextSection) {
+              if (nextSection.offsetTop > fromTop) {
+                link.classList.add("current");
+              } else {
+                link.classList.remove("current");    
+              }
+            } else {
+              link.classList.add("current");
+            }
+          } else {
+            link.classList.remove("current");
+          }
+        });
+      });
+
+    </script>
+  </body>
+</html>
